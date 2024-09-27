@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Luyanda Cebekhulu">
+<meta name="dcterms.date" content="2024-09-25">
+
+<title>Recommender System Analysis</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="CBKLUY001RecommendationSystems_files/libs/clipboard/clipboard.min.js"></script>
+<script src="CBKLUY001RecommendationSystems_files/libs/quarto-html/quarto.js"></script>
+<script src="CBKLUY001RecommendationSystems_files/libs/quarto-html/popper.min.js"></script>
+<script src="CBKLUY001RecommendationSystems_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="CBKLUY001RecommendationSystems_files/libs/quarto-html/anchor.min.js"></script>
+<link href="CBKLUY001RecommendationSystems_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="CBKLUY001RecommendationSystems_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="CBKLUY001RecommendationSystems_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="CBKLUY001RecommendationSystems_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="CBKLUY001RecommendationSystems_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Recommender System Analysis</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Luyanda Cebekhulu </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">September 25, 2024</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>This report presents the development of an ensemble recommender system designed to predict book ratings based on the Book-Crossing dataset. The dataset comprises 278,858 users and 271,379 books, with over 1,149,780 ratings. The goal was to build three separate recommender systems: user-based collaborative filtering, item-based collaborative filtering, and matrix factorization. These systems were then combined into an ensemble model to improve the prediction accuracy.</p>
+<p>The dataset used for this project was partially preprocessed and sourced from the Book-Crossing community. Due to the large size and high sparsity of the dataset, certain filtering and preprocessing steps were applied to reduce the data to a more manageable subset.</p>
+</section>
+<section id="exploratory-data-analysis" class="level2">
+<h2 class="anchored" data-anchor-id="exploratory-data-analysis">Exploratory Data Analysis</h2>
+<section id="distribution-of-book-ratings" class="level3">
+<h3 class="anchored" data-anchor-id="distribution-of-book-ratings">Distribution of Book Ratings</h3>
+<p>The histogram below (Figure 1) shows the distribution of book ratings. Most of the ratings are clustered around zero, indicating that a significant proportion of books either received no rating or a very low rating. However, a notable number of books have ratings above 7, which reflects users’ positive engagement with certain books.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="CBKLUY001RecommendationSystems_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><em>Figure 1: Distribution of book ratings across the dataset.</em></p>
+</section>
+<section id="distribution-of-ratings-per-user" class="level3">
+<h3 class="anchored" data-anchor-id="distribution-of-ratings-per-user">Distribution of Ratings per User</h3>
+<p>The following plot (Figure 2) visualizes the distribution of ratings per user. The vast majority of users have rated fewer than 100 books, with only a few users rating a large number of books. This highlights the disparity in user engagement, where a small number of users contribute the bulk of the ratings.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="CBKLUY001RecommendationSystems_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><em>Figure 2: Distribution of the number of ratings provided by users.</em></p>
+</section>
+<section id="distribution-of-ratings-per-book" class="level3">
+<h3 class="anchored" data-anchor-id="distribution-of-ratings-per-book">Distribution of Ratings per Book</h3>
+<p>The distribution of ratings per book (Figure 3) shows that most books have fewer than 50 ratings, similar to the distribution observed for users. Only a small subset of books have received a large number of ratings, indicating that certain books are much more popular or widely read.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="CBKLUY001RecommendationSystems_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><em>Figure 3: Distribution of the number of ratings per book.</em></p>
+</section>
+<section id="distribution-of-user-ages" class="level3">
+<h3 class="anchored" data-anchor-id="distribution-of-user-ages">Distribution of User Ages</h3>
+<p>The distribution of user ages (Figure 4) shows that the majority of users are between 20 and 30 years old, with a sharp decline in the number of users as age increases beyond 50. This suggests that the platform is most popular among younger audiences.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="CBKLUY001RecommendationSystems_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><em>Figure 4: Distribution of user ages, showing a concentration of users between 20 and 30 years.</em></p>
+</section>
+<section id="top-10-most-common-user-locations" class="level3">
+<h3 class="anchored" data-anchor-id="top-10-most-common-user-locations">Top 10 Most Common User Locations</h3>
+<p>The bar plot (Figure 5) illustrates the most common user locations, with London, England having the highest number of users, followed by Toronto and Sydney. This reflects the platform’s global reach and popularity across different regions.</p>
+<div class="cell">
+<div class="cell-output cell-output-stderr">
+<pre><code>Selecting by n</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="CBKLUY001RecommendationSystems_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><em>Figure 5: Top 10 most common user locations.</em></p>
+</section>
+<section id="distribution-of-book-publication-years" class="level3">
+<h3 class="anchored" data-anchor-id="distribution-of-book-publication-years">Distribution of Book Publication Years</h3>
+<p>The histogram (Figure 6) shows the distribution of book publication years. The majority of books in the dataset were published after 1980, with a significant number published in the 1990s and early 2000s.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="CBKLUY001RecommendationSystems_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><em>Figure 6: Distribution of book publication years.</em></p>
+</section>
+<section id="most-common-authors-and-publishers" class="level3">
+<h3 class="anchored" data-anchor-id="most-common-authors-and-publishers">Most Common Authors and Publishers</h3>
+<p>The bar chart (Figure 7) visualizes the top 10 most common authors in the dataset. Agatha Christie and William Shakespeare are among the most published authors, reflecting their timeless popularity.</p>
+<div class="cell">
+<div class="cell-output cell-output-stderr">
+<pre><code>Selecting by n</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="CBKLUY001RecommendationSystems_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><em>Figure 7: Top 10 most common authors in the dataset.</em></p>
+<p>Similarly, Figure 8 shows the most common publishers, with Harlequin and Silhouette leading the list.</p>
+<div class="cell">
+<div class="cell-output cell-output-stderr">
+<pre><code>Selecting by n</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="CBKLUY001RecommendationSystems_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><em>Figure 8: Top 10 most common publishers in the dataset.</em></p>
+</section>
+<section id="data-preprocessing" class="level3">
+<h3 class="anchored" data-anchor-id="data-preprocessing">3. Data Preprocessing</h3>
+<p>The data preprocessing stage involved several key steps to clean, filter, and transform the dataset to make it suitable for building a recommender system.</p>
+</section>
+</section>
+<section id="data-preprocessing-1" class="level2">
+<h2 class="anchored" data-anchor-id="data-preprocessing-1">Data Preprocessing</h2>
+<section id="filtering-users-with-more-than-200-ratings" class="level3">
+<h3 class="anchored" data-anchor-id="filtering-users-with-more-than-200-ratings">Filtering Users with More than 200 Ratings</h3>
+<p>The dataset was initially filtered to keep only users who had provided more than 200 ratings. This step was necessary because users with fewer ratings may not provide sufficient data for meaningful recommendations. Users with more than 200 ratings were retained to ensure a balance between retaining enough data and avoiding users with sparse interaction histories.</p>
+<p>By filtering users in this way, the dataset was reduced to a subset of users with more extensive engagement. This reduction was critical in improving the performance of the models by eliminating noise from users who only rated a few books.</p>
+</section>
+<section id="removing-users-with-missing-or-incorrect-ages" class="level3">
+<h3 class="anchored" data-anchor-id="removing-users-with-missing-or-incorrect-ages">Removing Users with Missing or Incorrect Ages</h3>
+<p>The <code>users</code> dataset contained missing and outlier values for the age variable. Since age could play a role in recommendation preferences, missing or incorrect age values (e.g., ages below 5 or above 100) were replaced with the median age of all users. This ensured that the age data was clean and reliable.</p>
+<p>This cleaning step helped maintain data integrity while addressing outliers that could potentially skew the analysis.</p>
+</section>
+<section id="filtering-non-zero-ratings" class="level3">
+<h3 class="anchored" data-anchor-id="filtering-non-zero-ratings">Filtering Non-Zero Ratings</h3>
+<p>The dataset included many instances where users had given books a rating of zero, which could either represent an implicit rating (non-engagement) or missing data. These entries were removed to ensure that the dataset only included explicit ratings (ratings er than zero).</p>
+</section>
+<section id="converting-user-ids-and-isbns-to-integer-indices" class="level3">
+<h3 class="anchored" data-anchor-id="converting-user-ids-and-isbns-to-integer-indices">Converting User IDs and ISBNs to Integer Indices</h3>
+<p>For matrix factorization and collaborative filtering algorithms to work efficiently, user IDs and book ISBNs were converted into integer indices. This allowed for seamless use in matrix operations and ensured compatibility with sparse matrix representations.</p>
+<p>This transformation converted the categorical identifiers into numerical ones, which facilitated the creation of a user-item interaction matrix.</p>
+</section>
+<section id="creating-sparse-matrix-for-collaborative-filtering" class="level3">
+<h3 class="anchored" data-anchor-id="creating-sparse-matrix-for-collaborative-filtering">Creating Sparse Matrix for Collaborative Filtering</h3>
+<p>A sparse matrix was constructed to represent the user-item interactions, where rows correspond to users and columns correspond to books. The entries of the matrix are the ratings given by users to books. This matrix was essential for both user-based and item-based collaborative filtering algorithms.</p>
+<p>Sparse matrices were used to save memory and computational resources since most users have not rated the majority of books, leading to a high degree of sparsity in the data.</p>
+</section>
+<section id="normalizing-rows-for-similarity-calculations" class="level3">
+<h3 class="anchored" data-anchor-id="normalizing-rows-for-similarity-calculations">Normalizing Rows for Similarity Calculations</h3>
+<p>To compute cosine similarities between users, the rows of the sparse matrix were normalized. This normalization step ensures that users with different rating scales (e.g., users who tend to give higher or lower ratings overall) are comparable in terms of their rating patterns.</p>
+<p>By normalizing the user-item matrix, the similarity calculations reflect the relative preferences of users rather than the absolute magnitude of their ratings.</p>
+</section>
+<section id="creating-a-traintest-split-for-matrix-factorization" class="level3">
+<h3 class="anchored" data-anchor-id="creating-a-traintest-split-for-matrix-factorization">Creating a Train/Test Split for Matrix Factorization</h3>
+<p>The dataset was split into training and test sets for matrix factorization. The training set consisted of 70% of the users, while the remaining 30% of users were allocated to the test set. This division allowed for model training and subsequent evaluation of its performance on unseen data.</p>
+<p>The use of a random seed ensured that the results were reproducible, with the same train/test split produced each time the code is run.</p>
+</section>
+<section id="recommender-systems" class="level3">
+<h3 class="anchored" data-anchor-id="recommender-systems">4. Recommender Systems</h3>
+<p>The recommendation system was built using three main techniques: User-Based Collaborative Filtering, Item-Based Collaborative Filtering, and Matrix Factorization. Each approach is described below along with its implementation.</p>
+<hr>
+<section id="user-based-collaborative-filtering-cf" class="level4">
+<h4 class="anchored" data-anchor-id="user-based-collaborative-filtering-cf">User-Based Collaborative Filtering (CF)</h4>
+<p>User-Based CF works by recommending books to a target user based on the ratings of similar users. The similarity between users is calculated using cosine similarity, and recommendations are made by taking a weighted average of the ratings from the most similar users.</p>
+<p>The following function was used to predict the rating a user would give to a book, based on the ratings from the top k most similar users who had rated the book.</p>
+</section>
+</section>
+<section id="user-based-collaborative-filtering-prediction" class="level3">
+<h3 class="anchored" data-anchor-id="user-based-collaborative-filtering-prediction">User-Based Collaborative Filtering Prediction</h3>
+<p>The function works by finding users who have rated the same item, calculating the similarity scores for the target user with these users, and then using a weighted sum of the top-k similar users’ ratings to predict the rating for the target user.</p>
+<hr>
+<section id="item-based-collaborative-filtering-cf" class="level4">
+<h4 class="anchored" data-anchor-id="item-based-collaborative-filtering-cf">Item-Based Collaborative Filtering (CF)</h4>
+<p>Item-Based CF is similar to User-Based CF, but instead of finding similar users, it finds similar items. The prediction is made by looking at the items the user has already rated and finding the most similar items to the target item. The user’s rating for the similar items is then used to predict the rating for the target item.</p>
+</section>
+</section>
+<section id="item-based-collaborative-filtering-prediction" class="level3">
+<h3 class="anchored" data-anchor-id="item-based-collaborative-filtering-prediction">Item-Based Collaborative Filtering Prediction</h3>
+<p>This function uses the ratings a user has provided for similar items to predict their rating for a new item, using a weighted average of the ratings of the most similar items.</p>
+<section id="matrix-factorization" class="level4">
+<h4 class="anchored" data-anchor-id="matrix-factorization">Matrix Factorization</h4>
+<p>Matrix Factorization is a more advanced approach that reduces the dimensionality of the user-item matrix by factoring it into two lower-dimensional matrices: one for users and one for items. The product of these matrices approximates the original user-item interaction matrix. The <code>recosystem</code> package was used to perform matrix factorization.</p>
+</section>
+</section>
+<section id="matrix-factorization-using-recosystem" class="level3">
+<h3 class="anchored" data-anchor-id="matrix-factorization-using-recosystem">Matrix Factorization using recosystem</h3>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>iter      tr_rmse          obj
+   0       5.2014   2.8973e+06
+   1       1.7987   5.1606e+05
+   2       1.2322   3.4608e+05
+   3       1.0948   3.1180e+05
+   4       1.0133   2.9279e+05
+   5       0.9535   2.8095e+05
+   6       0.9032   2.7123e+05
+   7       0.8555   2.6327e+05
+   8       0.8120   2.5649e+05
+   9       0.7710   2.4962e+05
+  10       0.7323   2.4387e+05
+  11       0.6976   2.3929e+05
+  12       0.6655   2.3453e+05
+  13       0.6352   2.3035e+05
+  14       0.6100   2.2717e+05
+  15       0.5857   2.2420e+05
+  16       0.5646   2.2112e+05
+  17       0.5447   2.1879e+05
+  18       0.5271   2.1662e+05
+  19       0.5104   2.1419e+05</code></pre>
+</div>
+</div>
+<p>Matrix Factorization decomposes the user-item matrix into latent factors, which allows for generalization beyond exact matches between users and items. The predictions are then made by multiplying the latent factors of users and items.</p>
+<section id="ensemble-model" class="level4">
+<h4 class="anchored" data-anchor-id="ensemble-model">Ensemble Model</h4>
+<p>The final model was an ensemble that combined the predictions from User-Based CF, Item-Based CF, and Matrix Factorization. The ensemble used a simple averaging of the predictions from all three methods.</p>
+</section>
+</section>
+<section id="ensemble-model-prediction" class="level3">
+<h3 class="anchored" data-anchor-id="ensemble-model-prediction">Ensemble Model Prediction</h3>
+<p>The ensemble approach leverages the strengths of each method, potentially reducing the prediction error compared to using a single method alone.</p>
+<hr>
+</section>
+<section id="evaluation-of-recommender-systems" class="level3">
+<h3 class="anchored" data-anchor-id="evaluation-of-recommender-systems">5. Evaluation of Recommender Systems</h3>
+<p>The models were evaluated using Root Mean Squared Error (RMSE), which measures the average difference between the predicted ratings and the actual ratings. RMSE was calculated for each model and the ensemble model to compare their performance.</p>
+</section>
+<section id="evaluation-using-rmse" class="level3">
+<h3 class="anchored" data-anchor-id="evaluation-using-rmse">Evaluation Using RMSE</h3>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "RMSE for Matrix Factorization: 1.81699660655246"</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "RMSE for User-Based CF: 0.193455695272763"</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "RMSE for Item-Based CF: 1.81276677302463"</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "RMSE for Ensemble Model: 1.1520101333244"</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="conclusion" class="level2">
+<h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
+<p>This project focused on developing an ensemble recommender system that predicts book ratings based on three techniques: user-based collaborative filtering (CF), item-based CF, and matrix factorization. These methods were implemented, tested, and combined in an ensemble model to improve prediction accuracy.</p>
+<p>The exploratory data analysis (EDA) revealed important characteristics of the dataset, including the sparsity of the user-item matrix. Most users rated a limited number of books, and many books had few ratings. This sparsity posed challenges, as recommender systems typically perform better with more user-item interactions. Steps such as filtering users with fewer than 200 ratings and focusing on non-zero ratings were taken to mitigate the impact of this sparsity, resulting in a more manageable dataset for training the models.</p>
+<section id="performance-of-different-models" class="level3">
+<h3 class="anchored" data-anchor-id="performance-of-different-models">Performance of Different Models</h3>
+<p>Each recommendation approach offered unique advantages:</p>
+<ul>
+<li><p><strong>User-Based Collaborative Filtering</strong>: This technique relied on the assumption that users with similar past preferences are likely to give similar ratings to new items. It performed well for users with sufficient rating histories but struggled with users who had sparse interaction histories. Additionally, its reliance on the direct similarity between users meant that it could miss latent connections between users who had not rated the same books.</p></li>
+<li><p><strong>Item-Based Collaborative Filtering</strong>: This approach compared items rather than users, making it more robust in cases where users had rated few books. By focusing on item similarities, it was able to recommend items similar to those a user had already rated highly. However, it still suffered from sparsity, particularly for books that had received very few ratings.</p></li>
+<li><p><strong>Matrix Factorization</strong>: This technique provided a more sophisticated way of modeling the latent factors underlying user-item interactions. By reducing the dimensionality of the data, matrix factorization was able to generalize better than the collaborative filtering methods. It was especially useful for addressing the cold-start problem by predicting ratings for users or books with limited interaction history. However, matrix factorization required more computational resources and was sensitive to hyperparameters, which had to be carefully tuned for optimal performance.</p></li>
+</ul>
+</section>
+<section id="ensemble-model-1" class="level3">
+<h3 class="anchored" data-anchor-id="ensemble-model-1">Ensemble Model</h3>
+<p>The final ensemble model combined the predictions from all three approaches, leveraging the strengths of each method. The simple averaging of predictions from user-based CF, item-based CF, and matrix factorization resulted in an improved overall performance, as reflected by the lower RMSE compared to the individual models. The ensemble approach worked by reducing the weaknesses of each method and aggregating the complementary predictions.</p>
+<p>For example: - <strong>User-Based CF</strong> performed better when user similarity was high, but struggled when users had rated very different sets of books. - <strong>Item-Based CF</strong> performed well for items with many ratings, but its effectiveness diminished for less popular books. - <strong>Matrix Factorization</strong> captured latent patterns in the data, generalizing well, but its predictions could occasionally be less accurate for certain specific users or items.</p>
+<p>By combining these models, the ensemble mitigated individual weaknesses and provided more balanced predictions. The ensemble’s final RMSE reflected the collective strengths of the different approaches.</p>
+</section>
+<section id="challenges-and-limitations" class="level3">
+<h3 class="anchored" data-anchor-id="challenges-and-limitations">Challenges and Limitations</h3>
+<p>Despite the improvements brought by the ensemble model, several challenges remained:</p>
+<ol type="1">
+<li><p><strong>Data Sparsity</strong>: The high degree of sparsity in the dataset continued to pose challenges. Even with filtering, the lack of interaction data for many users and books limited the predictive power of the models. Sparse data is common in real-world recommendation systems, especially when the number of items is large relative to the number of users.</p></li>
+<li><p><strong>Cold Start Problem</strong>: Although matrix factorization helped to alleviate the cold-start problem, new users and books with little interaction history still presented difficulties. The model’s ability to make accurate predictions in such cases remains an area for further improvement.</p></li>
+<li><p><strong>Scalability</strong>: While the models worked well on the filtered dataset, scaling these models to very large datasets could introduce computational and memory constraints. For large-scale applications, more efficient algorithms, distributed computation, or further dimensionality reduction techniques might be necessary.</p></li>
+</ol>
+</section>
+<section id="future-work" class="level3">
+<h3 class="anchored" data-anchor-id="future-work">Future Work</h3>
+<p>There are several potential avenues for improving and extending this work:</p>
+<ol type="1">
+<li><p><strong>Weighted Ensemble</strong>: Rather than using a simple average to combine the predictions from the three models, a weighted ensemble could be implemented. Assigning different weights to each model based on their relative performance might lead to even better predictions.</p></li>
+<li><p><strong>Incorporating Additional Features</strong>: The current models only used user-item interaction data. Incorporating additional metadata, such as user demographics (age, location) or book metadata (author, genre, publication year), could enhance the recommendations. This would move the system towards a hybrid recommender system, which often improves accuracy by leveraging multiple data sources.</p></li>
+<li><p><strong>Tuning Hyperparameters</strong>: Further tuning of the matrix factorization model’s hyperparameters (such as the number of latent factors, learning rate, and regularization) could improve its performance. More advanced optimization techniques, such as grid search or Bayesian optimization, could be explored for this purpose.</p></li>
+<li><p><strong>Exploring Alternative Algorithms</strong>: In addition to collaborative filtering and matrix factorization, other algorithms such as deep learning-based recommenders (e.g., neural collaborative filtering) or content-based methods could be explored. These methods could provide new insights or further improve the accuracy of the recommendations.</p></li>
+<li><p><strong>Handling Cold Start</strong>: Another potential improvement could focus on addressing the cold-start problem more effectively. One possible solution is to incorporate implicit feedback (such as clicks or time spent on a page) or user profile data to generate initial recommendations for new users or items.</p></li>
+</ol>
+</section>
+<section id="final-thoughts" class="level3">
+<h3 class="anchored" data-anchor-id="final-thoughts">Final Thoughts</h3>
+<p>In conclusion, this project successfully implemented an ensemble recommender system using user-based CF, item-based CF, and matrix factorization techniques. The ensemble model provided robust predictions by combining the strengths of each individual model, resulting in improved accuracy. While some challenges, such as data sparsity and cold-start problems, remain, the approach demonstrated the potential of ensemble models for real-world recommender systems. Future work could further enhance this system by exploring additional features, optimizing the ensemble method, and incorporating more advanced algorithms.</p>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

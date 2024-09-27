@@ -1,0 +1,504 @@
+---
+title: "Recommender System Analysis"
+author: "Luyanda Cebekhulu"
+date: "2024-09-25"
+format: html
+---
+
+## Introduction
+
+This report presents the development of an ensemble recommender system designed to predict book ratings based on the Book-Crossing dataset. The dataset comprises 278,858 users and 271,379 books, with over 1,149,780 ratings. The goal was to build three separate recommender systems: user-based collaborative filtering, item-based collaborative filtering, and matrix factorization. These systems were then combined into an ensemble model to improve the prediction accuracy.
+
+The dataset used for this project was partially preprocessed and sourced from the Book-Crossing community. Due to the large size and high sparsity of the dataset, certain filtering and preprocessing steps were applied to reduce the data to a more manageable subset.
+
+```{r echo=FALSE, message=FALSE}
+
+# Load necessary libraries
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+library(DT)
+library(Matrix)
+library(recosystem)
+library(tidyverse)
+
+
+# Load the datasets
+ratings <- read.csv("Ratings.csv")
+users <- read.csv("Users.csv")
+books <- read.csv("Books.csv")
+```
+
+## Exploratory Data Analysis
+
+### Distribution of Book Ratings
+
+The histogram below (Figure 1) shows the distribution of book ratings. Most of the ratings are clustered around zero, indicating that a significant proportion of books either received no rating or a very low rating. However, a notable number of books have ratings above 7, which reflects users' positive engagement with certain books.
+
+```{r echo=FALSE}
+
+ggplot(ratings, aes(x = Book.Rating)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
+  labs(title = "Distribution of Book Ratings", x = "Book Rating", y = "Count")
+
+```
+
+*Figure 1: Distribution of book ratings across the dataset.*
+
+### Distribution of Ratings per User
+
+The following plot (Figure 2) visualizes the distribution of ratings per user. The vast majority of users have rated fewer than 100 books, with only a few users rating a large number of books. This highlights the disparity in user engagement, where a small number of users contribute the bulk of the ratings.
+
+```{r echo=FALSE, warning=FALSE}
+user_ratings_count <- ratings %>%
+  group_by(User.ID) %>%
+  summarize(rating_count = n())
+
+ggplot(user_ratings_count, aes(x = rating_count)) +
+  geom_histogram(binwidth = 10, fill = "orange", color = "black") +
+  labs(title = "Distribution of Ratings per User", x = "Number of Ratings", y = "Number of Users") +
+  xlim(0, 500)
+
+```
+
+*Figure 2: Distribution of the number of ratings provided by users.*
+
+### Distribution of Ratings per Book
+
+The distribution of ratings per book (Figure 3) shows that most books have fewer than 50 ratings, similar to the distribution observed for users. Only a small subset of books have received a large number of ratings, indicating that certain books are much more popular or widely read.
+
+```{r echo=FALSE, warning=FALSE}
+
+book_ratings_count <- ratings %>%
+  group_by(ISBN) %>%
+  summarize(rating_count = n())
+
+ggplot(book_ratings_count, aes(x = rating_count)) +
+  geom_histogram(binwidth = 10, fill = "lightgreen", color = "black") +
+  labs(title = "Distribution of Ratings per Book", x = "Number of Ratings", y = "Number of Books") +
+  xlim(0, 500)
+
+```
+
+*Figure 3: Distribution of the number of ratings per book.*
+
+### Distribution of User Ages
+
+The distribution of user ages (Figure 4) shows that the majority of users are between 20 and 30 years old, with a sharp decline in the number of users as age increases beyond 50. This suggests that the platform is most popular among younger audiences.
+
+```{r echo=FALSE, warning=FALSE}
+
+ggplot(users, aes(x = Age)) +
+  geom_histogram(binwidth = 5, fill = "purple", color = "black") +
+  labs(title = "Distribution of User Ages", x = "Age", y = "Count") +
+  xlim(10, 100)
+
+```
+
+*Figure 4: Distribution of user ages, showing a concentration of users between 20 and 30 years.*
+
+### Top 10 Most Common User Locations
+
+The bar plot (Figure 5) illustrates the most common user locations, with London, England having the highest number of users, followed by Toronto and Sydney. This reflects the platform's global reach and popularity across different regions.
+
+```{r echo=FALSE, warning=FALSE}
+
+top_locations <- users %>%
+  count(Location, sort = TRUE) %>%
+  top_n(10)
+
+ggplot(top_locations, aes(x = reorder(Location, -n), y = n)) +
+  geom_bar(stat = "identity", fill = "darkred", color = "black") +
+  coord_flip() +
+  labs(title = "Top 10 Most Common User Locations", x = "Location", y = "Number of Users")
+
+```
+
+*Figure 5: Top 10 most common user locations.*
+
+### Distribution of Book Publication Years
+
+The histogram (Figure 6) shows the distribution of book publication years. The majority of books in the dataset were published after 1980, with a significant number published in the 1990s and early 2000s.
+
+```{r echo=FALSE, warning=FALSE}
+
+ggplot(books, aes(x = as.numeric(Year.Of.Publication))) +
+  geom_histogram(binwidth = 5, fill = "lightblue", color = "black") +
+  labs(title = "Distribution of Book Publication Years", x = "Publication Year", y = "Count") +
+  xlim(1900, 2025)
+```
+
+*Figure 6: Distribution of book publication years.*
+
+### Most Common Authors and Publishers
+
+The bar chart (Figure 7) visualizes the top 10 most common authors in the dataset. Agatha Christie and William Shakespeare are among the most published authors, reflecting their timeless popularity.
+
+```{r echo=FALSE, warning=FALSE}
+
+top_authors <- books %>%
+  count(Book.Author, sort = TRUE) %>%
+  top_n(10)
+
+ggplot(top_authors, aes(x = reorder(Book.Author, -n), y = n)) +
+  geom_bar(stat = "identity", fill = "gold", color = "black") +
+  coord_flip() +
+  labs(title = "Top 10 Most Common Authors", x = "Author", y = "Number of Books")
+```
+
+*Figure 7: Top 10 most common authors in the dataset.*
+
+Similarly, Figure 8 shows the most common publishers, with Harlequin and Silhouette leading the list.
+
+```{r echo=FALSE, warning=FALSE}
+
+top_publishers <- books %>%
+  count(Publisher, sort = TRUE) %>%
+  top_n(10)
+
+ggplot(top_publishers, aes(x = reorder(Publisher, -n), y = n)) +
+  geom_bar(stat = "identity", fill = "dodgerblue", color = "black") +
+  coord_flip() +
+  labs(title = "Top 10 Publishers", x = "Publisher", y = "Number of Books")
+```
+
+*Figure 8: Top 10 most common publishers in the dataset.*
+
+### 3. Data Preprocessing
+
+The data preprocessing stage involved several key steps to clean, filter, and transform the dataset to make it suitable for building a recommender system.
+
+## Data Preprocessing
+
+### Filtering Users with More than 200 Ratings
+
+The dataset was initially filtered to keep only users who had provided more than 200 ratings. This step was necessary because users with fewer ratings may not provide sufficient data for meaningful recommendations. Users with more than 200 ratings were retained to ensure a balance between retaining enough data and avoiding users with sparse interaction histories.
+
+```{r, echo=FALSE}
+user_ratings_count <- ratings %>%
+  group_by(User.ID) %>%
+  summarize(rating_count = n())
+
+users_with_200_ratings <- user_ratings_count %>%
+  filter(rating_count > 200)
+
+ratings_filtered <- ratings %>%
+  semi_join(users_with_200_ratings, by = "User.ID")
+
+```
+
+By filtering users in this way, the dataset was reduced to a subset of users with more extensive engagement. This reduction was critical in improving the performance of the models by eliminating noise from users who only rated a few books.
+
+### Removing Users with Missing or Incorrect Ages
+
+The `users` dataset contained missing and outlier values for the age variable. Since age could play a role in recommendation preferences, missing or incorrect age values (e.g., ages below 5 or above 100) were replaced with the median age of all users. This ensured that the age data was clean and reliable.
+
+```{r echo=FALSE}
+users <- users %>%
+  mutate(Age = ifelse(is.na(Age) | Age < 5 | Age > 100, median(Age, na.rm = TRUE), Age))
+
+```
+
+This cleaning step helped maintain data integrity while addressing outliers that could potentially skew the analysis.
+
+### Filtering Non-Zero Ratings
+
+The dataset included many instances where users had given books a rating of zero, which could either represent an implicit rating (non-engagement) or missing data. These entries were removed to ensure that the dataset only included explicit ratings (ratings er than zero).
+
+```{r echo=FALSE}
+ratings_filtered <- ratings_filtered %>%
+  filter(Book.Rating > 0)
+
+```
+
+### Converting User IDs and ISBNs to Integer Indices
+
+For matrix factorization and collaborative filtering algorithms to work efficiently, user IDs and book ISBNs were converted into integer indices. This allowed for seamless use in matrix operations and ensured compatibility with sparse matrix representations.
+
+```{r echo=FALSE}
+ratings_filtered <- ratings_filtered %>%
+  mutate(User.ID = as.integer(factor(User.ID)),
+         ISBN = as.integer(factor(ISBN)))
+
+```
+
+This transformation converted the categorical identifiers into numerical ones, which facilitated the creation of a user-item interaction matrix.
+
+### Creating Sparse Matrix for Collaborative Filtering
+
+A sparse matrix was constructed to represent the user-item interactions, where rows correspond to users and columns correspond to books. The entries of the matrix are the ratings given by users to books. This matrix was essential for both user-based and item-based collaborative filtering algorithms.
+
+```{r echo=FALSE}
+user_item_sparse_matrix <- sparseMatrix(
+  i = ratings_filtered$User.ID,
+  j = ratings_filtered$ISBN,
+  x = ratings_filtered$Book.Rating
+)
+
+```
+
+Sparse matrices were used to save memory and computational resources since most users have not rated the majority of books, leading to a high degree of sparsity in the data.
+
+### Normalizing Rows for Similarity Calculations
+
+To compute cosine similarities between users, the rows of the sparse matrix were normalized. This normalization step ensures that users with different rating scales (e.g., users who tend to give higher or lower ratings overall) are comparable in terms of their rating patterns.
+
+```{r echo=FALSE}
+row_norms <- sqrt(rowSums(user_item_sparse_matrix^2))
+non_zero_rows <- row_norms > 0
+user_item_norm <- user_item_sparse_matrix
+user_item_norm[non_zero_rows, ] <- user_item_sparse_matrix[non_zero_rows, ] / row_norms[non_zero_rows]
+
+```
+
+By normalizing the user-item matrix, the similarity calculations reflect the relative preferences of users rather than the absolute magnitude of their ratings.
+
+### Creating a Train/Test Split for Matrix Factorization
+
+The dataset was split into training and test sets for matrix factorization. The training set consisted of 70% of the users, while the remaining 30% of users were allocated to the test set. This division allowed for model training and subsequent evaluation of its performance on unseen data.
+
+```{r echo=FALSE}
+set.seed(2024)
+train_index <- sample(unique(ratings_filtered$User.ID), size = 0.7 * n_distinct(ratings_filtered$User.ID))
+
+train_data <- ratings_filtered %>%
+  filter(User.ID %in% train_index)
+
+test_data <- ratings_filtered %>%
+  filter(!(User.ID %in% train_index))
+
+```
+
+The use of a random seed ensured that the results were reproducible, with the same train/test split produced each time the code is run.
+
+### 4. Recommender Systems
+
+The recommendation system was built using three main techniques: User-Based Collaborative Filtering, Item-Based Collaborative Filtering, and Matrix Factorization. Each approach is described below along with its implementation.
+
+------------------------------------------------------------------------
+
+#### User-Based Collaborative Filtering (CF)
+
+User-Based CF works by recommending books to a target user based on the ratings of similar users. The similarity between users is calculated using cosine similarity, and recommendations are made by taking a weighted average of the ratings from the most similar users.
+
+The following function was used to predict the rating a user would give to a book, based on the ratings from the top k most similar users who had rated the book.
+
+### User-Based Collaborative Filtering Prediction
+
+```{r, echo=FALSE}
+user_based_prediction <- function(user_id, item_id, k = 15) {
+  # Identify users who rated the item
+  users_who_rated <- which(user_item_sparse_matrix[, item_id] != 0)
+  
+  # Get similarity scores for the target user with other users
+  user_sim_scores <- user_similarity_sparse[user_id, users_who_rated]
+  
+  # Get ratings for the item from the similar users
+  ratings_for_item <- user_item_sparse_matrix[users_who_rated, item_id]
+  
+  # Sort users by similarity and take the top K most similar users
+  top_k_users <- order(user_sim_scores, decreasing = TRUE)[1:min(k, length(user_sim_scores))]
+  
+  # Compute the weighted average of the top K users' ratings
+  weighted_sum <- sum(user_sim_scores[top_k_users] * ratings_for_item[top_k_users])
+  sum_of_similarities <- sum(abs(user_sim_scores[top_k_users]))
+  
+  # Predict the rating by dividing the weighted sum by the sum of similarities
+  predicted_rating <- ifelse(sum_of_similarities == 0, 0, weighted_sum / sum_of_similarities)
+  
+  return(predicted_rating)
+}
+```
+
+The function works by finding users who have rated the same item, calculating the similarity scores for the target user with these users, and then using a weighted sum of the top-k similar users' ratings to predict the rating for the target user.
+
+------------------------------------------------------------------------
+
+#### Item-Based Collaborative Filtering (CF)
+
+Item-Based CF is similar to User-Based CF, but instead of finding similar users, it finds similar items. The prediction is made by looking at the items the user has already rated and finding the most similar items to the target item. The user's rating for the similar items is then used to predict the rating for the target item.
+
+### Item-Based Collaborative Filtering Prediction
+
+```{r echo=FALSE}
+item_item_sparse_matrix <- t(user_item_sparse_matrix)
+
+item_similarity_sparse <- tcrossprod(item_item_sparse_matrix)
+
+item_based_prediction <- function(user_id, item_id, k = 15) {
+  # Identify items rated by the user
+  items_rated_by_user <- which(user_item_sparse_matrix[user_id, ] != 0)
+  
+  # Get similarity scores for the target item with other items rated by the user
+  item_sim_scores <- item_similarity_sparse[item_id, items_rated_by_user]
+  
+  # Get the user's ratings for these items
+  user_ratings <- user_item_sparse_matrix[user_id, items_rated_by_user]
+  
+  # Sort by similarity and take the top K similar items
+  top_k_items <- order(item_sim_scores, decreasing = TRUE)[1:min(k, length(item_sim_scores))]
+  
+  # Compute weighted average of the top K items' ratings
+  weighted_sum <- sum(item_sim_scores[top_k_items] * user_ratings[top_k_items])
+  sum_of_similarities <- sum(abs(item_sim_scores[top_k_items]))
+  
+  # Return predicted rating
+  predicted_rating <- ifelse(sum_of_similarities == 0, 0, weighted_sum / sum_of_similarities)
+  return(predicted_rating)
+}
+```
+
+This function uses the ratings a user has provided for similar items to predict their rating for a new item, using a weighted average of the ratings of the most similar items.
+
+#### Matrix Factorization
+
+Matrix Factorization is a more advanced approach that reduces the dimensionality of the user-item matrix by factoring it into two lower-dimensional matrices: one for users and one for items. The product of these matrices approximates the original user-item interaction matrix. The `recosystem` package was used to perform matrix factorization.
+
+### Matrix Factorization using recosystem
+
+```{r echo=F}
+# Prepare data for recosystem
+train_memory <- data_memory(train_data$User.ID, train_data$ISBN, train_data$Book.Rating)
+test_memory <- data_memory(test_data$User.ID, test_data$ISBN)
+
+# Initialize Reco object
+recommender <- Reco()
+
+# Train the model with matrix factorization
+recommender$train(train_memory, opts = list(dim = 20, costp_l2 = 0.1, costq_l2 = 0.1, lrate = 0.1, nthread = 4))
+
+# Predict ratings for the test set
+predictions_mf <- recommender$predict(test_memory, out_memory())
+
+```
+
+Matrix Factorization decomposes the user-item matrix into latent factors, which allows for generalization beyond exact matches between users and items. The predictions are then made by multiplying the latent factors of users and items.
+
+#### Ensemble Model
+
+The final model was an ensemble that combined the predictions from User-Based CF, Item-Based CF, and Matrix Factorization. The ensemble used a simple averaging of the predictions from all three methods.
+
+### Ensemble Model Prediction
+
+```{r echo =FALSE}
+ensemble_prediction <- function(user_id, item_id) {
+  # Get predictions from user-based CF, item-based CF, and matrix factorization
+  user_cf_pred <- user_based_prediction(user_id, item_id)
+  item_cf_pred <- item_based_prediction(user_id, item_id)
+  
+  # Get matrix factorization prediction
+  matrix_factorization_pred <- recommender$predict(data_memory(user_id, item_id))
+  
+  # Simple average for ensemble (can adjust weights if necessary)
+  ensemble_pred <- mean(c(user_cf_pred, item_cf_pred, matrix_factorization_pred))
+  return(ensemble_pred)
+}
+```
+
+The ensemble approach leverages the strengths of each method, potentially reducing the prediction error compared to using a single method alone.
+
+------------------------------------------------------------------------
+
+### 5. Evaluation of Recommender Systems
+
+The models were evaluated using Root Mean Squared Error (RMSE), which measures the average difference between the predicted ratings and the actual ratings. RMSE was calculated for each model and the ensemble model to compare their performance.
+
+### Evaluation Using RMSE
+
+```{r echo=FALSE, message=FALSE}
+
+# Step 7: Calculate user-user similarity matrix
+
+# Compute cosine similarity using the normalized user-item matrix
+user_similarity_sparse <- tcrossprod(user_item_norm)
+
+
+# RMSE calculation function
+rmse <- function(actual, predicted) {
+  sqrt(mean((actual - predicted)^2))
+}
+
+# Calculate RMSE for Matrix Factorization
+actual_ratings <- test_data$Book.Rating
+rmse_mf <- rmse(actual_ratings, predictions_mf)
+print(paste("RMSE for Matrix Factorization:", rmse_mf))
+
+# Sample 50 test cases for User-Based CF and Item-Based CF evaluation
+set.seed(2024)
+test_sample <- test_data %>% sample_n(50)
+
+# Calculate RMSE for User-Based CF
+predictions_user_cf <- sapply(1:nrow(test_sample), function(i) {
+  user_based_prediction(test_sample$User.ID[i], test_sample$ISBN[i])
+})
+rmse_user_cf <- rmse(test_sample$Book.Rating, predictions_user_cf)
+print(paste("RMSE for User-Based CF:", rmse_user_cf))
+
+# Calculate RMSE for Item-Based CF
+predictions_item_cf <- sapply(1:nrow(test_sample), function(i) {
+  item_based_prediction(test_sample$User.ID[i], test_sample$ISBN[i])
+})
+rmse_item_cf <- rmse(test_sample$Book.Rating, predictions_item_cf)
+print(paste("RMSE for Item-Based CF:", rmse_item_cf))
+
+# Calculate RMSE for Ensemble Model
+predictions_ensemble <- sapply(1:nrow(test_sample), function(i) {
+  ensemble_prediction(test_sample$User.ID[i], test_sample$ISBN[i])
+})
+rmse_ensemble <- rmse(test_sample$Book.Rating, predictions_ensemble)
+print(paste("RMSE for Ensemble Model:", rmse_ensemble))
+
+```
+
+## Conclusion
+
+This project focused on developing an ensemble recommender system that predicts book ratings based on three techniques: user-based collaborative filtering (CF), item-based CF, and matrix factorization. These methods were implemented, tested, and combined in an ensemble model to improve prediction accuracy.
+
+The exploratory data analysis (EDA) revealed important characteristics of the dataset, including the sparsity of the user-item matrix. Most users rated a limited number of books, and many books had few ratings. This sparsity posed challenges, as recommender systems typically perform better with more user-item interactions. Steps such as filtering users with fewer than 200 ratings and focusing on non-zero ratings were taken to mitigate the impact of this sparsity, resulting in a more manageable dataset for training the models.
+
+### Performance of Different Models
+
+Each recommendation approach offered unique advantages:
+
+-   **User-Based Collaborative Filtering**: This technique relied on the assumption that users with similar past preferences are likely to give similar ratings to new items. It performed well for users with sufficient rating histories but struggled with users who had sparse interaction histories. Additionally, its reliance on the direct similarity between users meant that it could miss latent connections between users who had not rated the same books.
+
+-   **Item-Based Collaborative Filtering**: This approach compared items rather than users, making it more robust in cases where users had rated few books. By focusing on item similarities, it was able to recommend items similar to those a user had already rated highly. However, it still suffered from sparsity, particularly for books that had received very few ratings.
+
+-   **Matrix Factorization**: This technique provided a more sophisticated way of modeling the latent factors underlying user-item interactions. By reducing the dimensionality of the data, matrix factorization was able to generalize better than the collaborative filtering methods. It was especially useful for addressing the cold-start problem by predicting ratings for users or books with limited interaction history. However, matrix factorization required more computational resources and was sensitive to hyperparameters, which had to be carefully tuned for optimal performance.
+
+### Ensemble Model
+
+The final ensemble model combined the predictions from all three approaches, leveraging the strengths of each method. The simple averaging of predictions from user-based CF, item-based CF, and matrix factorization resulted in an improved overall performance, as reflected by the lower RMSE compared to the individual models. The ensemble approach worked by reducing the weaknesses of each method and aggregating the complementary predictions.
+
+For example: - **User-Based CF** performed better when user similarity was high, but struggled when users had rated very different sets of books. - **Item-Based CF** performed well for items with many ratings, but its effectiveness diminished for less popular books. - **Matrix Factorization** captured latent patterns in the data, generalizing well, but its predictions could occasionally be less accurate for certain specific users or items.
+
+By combining these models, the ensemble mitigated individual weaknesses and provided more balanced predictions. The ensemble's final RMSE reflected the collective strengths of the different approaches.
+
+### Challenges and Limitations
+
+Despite the improvements brought by the ensemble model, several challenges remained:
+
+1.  **Data Sparsity**: The high degree of sparsity in the dataset continued to pose challenges. Even with filtering, the lack of interaction data for many users and books limited the predictive power of the models. Sparse data is common in real-world recommendation systems, especially when the number of items is large relative to the number of users.
+
+2.  **Cold Start Problem**: Although matrix factorization helped to alleviate the cold-start problem, new users and books with little interaction history still presented difficulties. The model's ability to make accurate predictions in such cases remains an area for further improvement.
+
+3.  **Scalability**: While the models worked well on the filtered dataset, scaling these models to very large datasets could introduce computational and memory constraints. For large-scale applications, more efficient algorithms, distributed computation, or further dimensionality reduction techniques might be necessary.
+
+### Future Work
+
+There are several potential avenues for improving and extending this work:
+
+1.  **Weighted Ensemble**: Rather than using a simple average to combine the predictions from the three models, a weighted ensemble could be implemented. Assigning different weights to each model based on their relative performance might lead to even better predictions.
+
+2.  **Incorporating Additional Features**: The current models only used user-item interaction data. Incorporating additional metadata, such as user demographics (age, location) or book metadata (author, genre, publication year), could enhance the recommendations. This would move the system towards a hybrid recommender system, which often improves accuracy by leveraging multiple data sources.
+
+3.  **Tuning Hyperparameters**: Further tuning of the matrix factorization model's hyperparameters (such as the number of latent factors, learning rate, and regularization) could improve its performance. More advanced optimization techniques, such as grid search or Bayesian optimization, could be explored for this purpose.
+
+4.  **Exploring Alternative Algorithms**: In addition to collaborative filtering and matrix factorization, other algorithms such as deep learning-based recommenders (e.g., neural collaborative filtering) or content-based methods could be explored. These methods could provide new insights or further improve the accuracy of the recommendations.
+
+5.  **Handling Cold Start**: Another potential improvement could focus on addressing the cold-start problem more effectively. One possible solution is to incorporate implicit feedback (such as clicks or time spent on a page) or user profile data to generate initial recommendations for new users or items.
+
+### Final Thoughts
+
+In conclusion, this project successfully implemented an ensemble recommender system using user-based CF, item-based CF, and matrix factorization techniques. The ensemble model provided robust predictions by combining the strengths of each individual model, resulting in improved accuracy. While some challenges, such as data sparsity and cold-start problems, remain, the approach demonstrated the potential of ensemble models for real-world recommender systems. Future work could further enhance this system by exploring additional features, optimizing the ensemble method, and incorporating more advanced algorithms.

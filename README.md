@@ -37,7 +37,11 @@ The aim of the project is to build a recommender system that predicts book ratin
 - `results/`: Folder containing output files, such as the rendered PDF or Word document of the report.
 
 ## How to Run the Project
+*Clone the repository:*
 
+```bash
+git clone https://github.com/Luyanda3431/RecommendationSystems/edit/main/README.md
+```
 ### Prerequisites
 
 - R (version 4.0 or higher)
